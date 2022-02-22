@@ -1,3 +1,4 @@
+from time import sleep
 import win32clipboard
 import win32con
 import ctypes
@@ -12,10 +13,14 @@ KEYEVENTF_UNICODE  = 0x0004
 KEYEVENTF_KEYUP       = 0x0002
 def getClipBoardContent():
     # get clipboard data
-    win32clipboard.OpenClipboard()
-    data = win32clipboard.GetClipboardData()
-    win32clipboard.CloseClipboard()
-    return data
+    try:
+      win32clipboard.OpenClipboard()
+      data = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+      win32clipboard.CloseClipboard()
+      return data
+    except Exception as e:
+      print(e)      
+    return ""
 
 
 HOTKEYS = {
@@ -63,6 +68,8 @@ def send_unicode(s):
     i = INPUT()
     i.type = INPUT_KEYBOARD
     for c in s:
+        if c =='\u000d':
+          print('find n')
         i.ki = KEYBDINPUT(0,ord(c),KEYEVENTF_UNICODE,0,0)
         user32.SendInput(1,byref(i),ctypes.sizeof(INPUT))
         i.ki.dwFlags |= KEYEVENTF_KEYUP
@@ -83,10 +90,21 @@ try:
         print(win_name)
         if -1!=win_name.find("远程桌面连接"):
           print("当前为远程，发送剪切板")
-          clipContent = getClipBoardContent()
-          print(clipContent)
-          win32api.keybd_event(0x35,0,0,0)
-          send_unicode(clipContent)
+          try:
+            clipContent = getClipBoardContent()
+            print(clipContent)   
+            if(clipContent!=""):               
+              lines = clipContent.splitlines()
+              for line in lines:
+                send_unicode(line) 
+                # sleep(0.02)               
+                # win32api.keybd_event(0xd,0,1,0)
+                # sleep(0.02)
+                # win32api.keybd_event(0xd,0,1|2,0)
+                
+          except Exception as e:
+            print(e)
+
         
 
     user32.TranslateMessage (byref (msg))
